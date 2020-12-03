@@ -1,7 +1,7 @@
 import os
 
 fn main() {
-	input := read_input_file('./day1a/input.txt')
+	input := read_input_file('./day1a/input_.txt')
 	println(solution(input))
 }
 
