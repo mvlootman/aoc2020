@@ -61,17 +61,10 @@ fn validate_height(val string) bool {
 	}
 	length := val[..val.len - 2]
 	// println('length:$length unit:$unit')
-	// C-error
-	// res:= match unit {
-	// 'cm' { return validate_num(length, 150, 193) }
-	// 'in' { return validate_num(length, 59, 76) }
-	// else { false }
-	// }
-	mut valid := false
-	if unit == 'cm' {
-		valid = validate_num(length, 150, 193)
-	} else if unit == 'in' {
-		valid = validate_num(length, 59, 76)
+	valid := match unit {
+		'cm' { validate_num(length, 150, 193) }
+		'in' { validate_num(length, 59, 76) }
+		else { false }
 	}
 	return valid
 }
