@@ -60,7 +60,6 @@ fn validate_height(val string) bool {
 		return false
 	}
 	length := val[..val.len - 2]
-	// println('length:$length unit:$unit')
 	valid := match unit {
 		'cm' { validate_num(length, 150, 193) }
 		'in' { validate_num(length, 59, 76) }
@@ -70,10 +69,7 @@ fn validate_height(val string) bool {
 }
 
 fn validate_hair_color(val string) bool {
-	if val[0] != `#` {
-		return false
-	}
-	if val.len != 7 {
+	if val[0] != `#` || val.len != 7 {
 		return false
 	}
 	for ch in val[1..] {
