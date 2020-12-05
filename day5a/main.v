@@ -2,21 +2,15 @@ import math
 import os
 
 fn main() {
-	// exclude seatids front seat_id 1*8+[1..8] => <=16 skip 
-	// exclude seatids back seat_id 128*8+[1...8] => >1025 skip
-
 	input_list := read_file_lines('input.txt')
-	mut booked_seats  := []int{}
+	mut max_seat_id := -1
 	for input in input_list {
 		_, _, seat_id := decode_ticket(input)
-		booked_seats << seat_id
-	}
-	for candidate_seat_id in  17..1025{
-		if candidate_seat_id !in booked_seats{
-			println('seat_id:$candidate_seat_id')
-			break
+		if seat_id > max_seat_id {
+			max_seat_id = seat_id
 		}
 	}
+	println('max seat_id:$max_seat_id')
 }
 
 fn read_file_lines(file_path string) []string {

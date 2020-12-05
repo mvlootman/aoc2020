@@ -3,14 +3,20 @@ import os
 
 fn main() {
 	input_list := read_file_lines('input.txt')
-	mut max_seat_id := -1
+	mut booked_seats := []int{}
 	for input in input_list {
 		_, _, seat_id := decode_ticket(input)
-		if seat_id > max_seat_id {
-			max_seat_id = seat_id
+		booked_seats << seat_id
+	}
+	_, _, start_seat_id := decode_ticket('FFFFFFFRRR') // row: 0, col: 7, seat_id: 7
+	_, _, end_seat_id := decode_ticket('BBBBBBBLLL') // row: 127, col: 0, seat_id 1016
+	// candidate seat wil start after start_seat and before end_seat_id
+	for candidate_seat_id in start_seat_id + 1 .. end_seat_id {
+		if candidate_seat_id !in booked_seats {
+			println('seat_id:$candidate_seat_id')
+			break
 		}
 	}
-	println('max seat_id:$max_seat_id')
 }
 
 fn read_file_lines(file_path string) []string {
@@ -39,7 +45,6 @@ fn decode_row(input string) int {
 		binary += digit
 	}
 	res := binary_string_to_int(binary)
-	// println('decode_row:$input res:$res')
 	return res
 }
 
@@ -55,7 +60,6 @@ fn decode_col(input string) int {
 		binary += digit
 	}
 	res := binary_string_to_int(binary)
-	// println('decode_col:$input res:$res')
 	return res
 }
 
