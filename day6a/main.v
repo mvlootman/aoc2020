@@ -6,8 +6,7 @@ fn main() {
 				.map(it.replace('\n', ''))
 				.map(parse_answers(it))
 				.map(it.keys().len)
-				.reduce(sum,
-		0)
+				.reduce(sum, 0)
 	println(groups)
 }
 
