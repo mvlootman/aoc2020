@@ -1,0 +1,7 @@
+dark gold bags contain 4 dull indigo bags, 5 mirrored orange bags, 5 bright teal bags, 1 dim gold bagshiny gold bags contain 2 dark red bags.
+dark red bags contain 2 dark orange bags.
+dark orange bags contain 2 dark yellow bags.
+dark yellow bags contain 2 dark green bags.
+dark green bags contain 2 dark blue bags.
+dark blue bags contain 2 dark violet bags.
+dark violet bags contain no other bags.

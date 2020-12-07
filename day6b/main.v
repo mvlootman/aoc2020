@@ -2,13 +2,8 @@ import os
 
 fn main() {
 	input := read_file_as_string('input.txt')
-	group_sizes := input.split('\n\n')
-						.map(it.split('\n'))
-						.map(it.len)
-	answers := input.split('\n\n')
-					.map(it.replace('\n', ''))
-					.map(parse_answers(it))
-
+	group_sizes := input.split('\n\n').map(it.split('\n')).map(it.len)
+	answers := input.split('\n\n').map(it.replace('\n', '')).map(parse_answers(it))
 	mut unanimous_group_count := 0
 	for idx, group_size in group_sizes {
 		unanimous_group_count += find_unanimous_answers_for_group(answers[idx], group_size)
