@@ -156,15 +156,11 @@ fn (mut p Program) get_input() {
 	p.grid = [][]CellState{len: p.rows, init: []CellState{len: p.cols}}
 	for line_idx, line in input {
 		for ch_idx, ch in line {
-			mut cell_state := CellState.floor
-			if ch == `L` {
-				cell_state = CellState.empty
-			} else if ch == `#` {
-				cell_state = CellState.occupied
-			} else if ch == `.` {
-				cell_state = CellState.floor
-			} else {
-				panic('invalid input cell: $ch')
+			cell_state := match ch {
+				`L` { CellState.empty}
+				`#` { CellState.occupied}
+				`.` { CellState.floor}
+				else { CellState.floor}
 			}
 			p.grid[line_idx][ch_idx] = cell_state
 		}
