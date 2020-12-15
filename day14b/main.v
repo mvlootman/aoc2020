@@ -1,18 +1,9 @@
 import os
+import strconv
 
 const (
 	input_file = 'input.txt'
 )
-
-// struct Input {
-// 	mask  string
-// 	steps []Step
-// }
-
-// struct Step {
-// 	location int
-// 	val      int
-// }
 
 struct Program {
 mut:
@@ -34,30 +25,17 @@ fn (mut p Program) execute(inputs []string) u64 {
 		} else {
 			mem_loc := line.find_between('[', ']').u64()
 			val := line.all_after('= ').trim('').u64()
-			mut new_val := val
-			for i, ch in mask {
-				new_val = match ch {
-					`0`, `1` { modify_bit_at(new_val, u64(i), u64(ch)) }
-					else { new_val }
-				}
+			addresses := apply_mask(mem_loc, mask)
+			for addr in addresses {
+				p.memory[addr.str()] = val
 			}
-			p.memory[mem_loc.str()] = new_val
-			// println('new_val:$new_val')
 		}
 	}
 	// return sum
 	mut res := u64(0)
-	for k, v in p.memory {
-		println('$k:$v')
+	for _, v in p.memory {
 		res += u64(v)
 	}
-	return res
-}
-
-fn modify_bit_at(number u64, pos u64, bit_val u64) u64 {
-	mask := u64(1) << pos
-	res := (number & ~mask) | ((bit_val << pos) & mask)
-	// println('modify_bit_at n:$number pos:$pos val:$bit_val =>res:$res')
 	return res
 }
 
@@ -66,24 +44,77 @@ fn get_inputs() []string {
 	return lines
 }
 
-// fn get_inputs() Input {
-// lines := os.read_lines(input_file) or { panic(err) }
-// lines.split()
-// input := Input{
-// mask: lines[0].all_after('= ').trim('')
-// steps: lines[1..].map(extract_step(it))
-// }
-// }
-// return input
-// }
-// fn extract_step(line string) Step {
-// 	index := line.find_between('[', ']').int()
-// 	val := line.all_after('= ').trim('').int()
-// 	step := Step{index, val}
-// 	return step
-// }
+fn apply_mask(val u64, mask string) []u64 {
+	mut vals := []string{}
+	mut xs_ids := []int{}
+	mut upd_mask := ''
+	for i, ch in mask {
+		match ch {
+			`0` {
+				upd_mask += bit_at_pos(val, i).str()
+			}
+			`1` {
+				upd_mask += '1'
+			}
+			`X` {
+				upd_mask += '0' // we create the zero version and add the one version after
+				xs_ids << i
+			}
+			else {}
+		}
+	}
+	vals << upd_mask
+	combinations := bool_combinations(xs_ids.len)
+	for combo in combinations {
+		// e.g. [0, 0, 0]
+		// [0, 0, 1]
+		// [0, 1, 0] etc
+		mut tmp := upd_mask
+		for i, v in combo {
+			pos := xs_ids[i]
+			tmp = tmp[0..pos] + v.str() + tmp[pos + 1..] // replace character with value of combination
+		}
+		vals << tmp
+	}
+	vals = vals.map(it.reverse())
+	res := vals.map(strconv.parse_uint(it, 2, it.len))
+	return res
+}
 
-// mask = XXXXXXXXXXXXXXXXXXXXXXXXXXXXX1XXXX0X
-// mem[8] = 11
-// mem[7] = 101
-// mem[8] = 0
+fn bit_at_pos(number u64, pos int) u64 {
+	res := (number >> pos) & 1
+	return res
+}
+
+fn bool_combinations(num int) [][]int {
+	max := 1 << num
+	mut res := [][]int{len: max, init: []int{}}
+	for i in 0 .. max {
+		bin_str := decbin(u32(i), u64(num))
+		cut_str := bin_str[bin_str.len - num..]
+		res[i] = cut_str.split('').map(it.int())
+	}
+	return res
+}
+
+// returns binary number out of decimal number
+// https://www.php.net/manual/de/function.decbin.php
+// https://www.javatpoint.com/c-program-to-convert-decimal-to-binary
+fn decbin(value u64, length u64) string {
+	mut n := value
+	mut v := ''
+	mut i := 0
+	for n > 0 {
+		v += (n % 2).str()
+		n = n / 2
+		i++
+	}
+	if length > 0 {
+		for v.len < length {
+			v += '0'
+		}
+	}
+	return v.reverse()
+}
+
+// 3608464522781
