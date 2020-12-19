@@ -41,7 +41,7 @@ fn (rules []Interval) is_valid(val int) bool {
 			res = true
 		}
 	}
-	println('is_valid val:[$val] res:[$res]')
+	// println('is_valid val:[$val] res:[$res]')
 	return res
 }
 
@@ -77,55 +77,31 @@ fn main() {
 	tickets = tickets.filter(validator.valid_ticket(it))
 	println('valid tickets:$tickets.len')
 	assert tickets.len > 0
-	// key => index
-	mut mapping_index := map[string]int{} // field -> colIndex
-	for n in 0 .. tickets[0].len {
-		println('next columns:[N=$n]')
-		for row in 0 .. tickets.len {
-			println('val:${tickets[row][n]}')
-			for k, _ in field_map {
-				if k in mapping_index {
-					// we already mapped current field to a column
-					field_map[k] = false
-					continue
-				}
-				// if field_map[k] == false {		// CLEAR MAP!!!!!!
-				// continue
-				// }
-				num_valid := rules[k].is_valid(tickets[row][n])
-				println('num:${tickets[row][n]} num_valid:$num_valid field_map[$k]=${field_map[k]}')
-				field_map[k] = field_map[k] && num_valid
-				println('after ${field_map[k]} k=$k')
+	mut matches_map := map[string][]int{} // key -> col.indices
+	for col in 0..tickets[0].len {
+		for field, _ in rules {
+			mut match_all := true
+			// println('field:$field rules:${rules[field]}')
+			for i, _ in tickets {
+				num_col_index := tickets[i][col]
+				is_valid := rules[field].is_valid(num_col_index)
+				match_all = match_all && is_valid
+				// println('Col:$col num_col_index:$num_col_index is_valid:${is_valid}')
 			}
-		}
-		// we now have a map with keys and whether they are true for all column values
-		println('AFTER COL FIELD_MAP:$field_map')
-		// inspect map
-		mut key := ''
-		mut count := 0
-		for k, _ in field_map {
-			if field_map[k] {
-				println('Matching field:[$k] found in column:$n')
-				mapping_index[key] = n
-				// key = k
-				// count++
+			if match_all {
+				matches_map[field] << col
+				println('matched all column values for [$field] result:[$match_all] col:[$col]')
 			}
-		}
-		// if count == 1 {
-		// 	println('COL:$n KEY:$key $mapping_index')
-		// }
-		// reset field_map after each column
-		for k, _ in field_map {
-			field_map[k] = true
 		}
 	}
-	println('\n\n')
-	println('mapping:$mapping_index')
+	// println('matches:$matches_map')
+	for k,v in matches_map{
+		println('key:$k v:$v')
+	}
+
 }
 
 fn read_file_as_string(file_path string) string {
-	raw := os.read_file(file_path) or {
-		panic(err)
-	}
+	raw := os.read_file(file_path) or { panic(err) }
 	return raw
 }
