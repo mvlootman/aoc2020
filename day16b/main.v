@@ -4,28 +4,12 @@ const (
 	input_file = './input.txt'
 )
 
-struct Interval {
-	from int
-	to   int
-}
-
-struct Validator {
-mut:
-	rules map[string][]Interval
-}
-
-fn (mut v Validator) new(ruleset map[string][]Interval) {
-	v.rules = ruleset
-}
-
-fn (v Validator) valid_ticket(ticket_num []int) bool {
+fn valid_ticket(ticket_num []int, limits [][]int) bool {
 	for n in ticket_num {
 		mut valid_in_any := false
-		for k in v.rules.keys() {
-			if v.rules[k].is_valid(n) {
-				valid_in_any = true
-				break
-			}
+		for l in limits {
+			min1, max1, min2, max2 := l[0], l[1], l[2], l[3]
+			valid_in_any = valid_in_any || (min1 <= n && n <= max1) || (min2 <= n && n <= max2)
 		}
 		if !valid_in_any {
 			return false
@@ -34,98 +18,101 @@ fn (v Validator) valid_ticket(ticket_num []int) bool {
 	return true
 }
 
-fn (rules []Interval) is_valid(val int) bool {
-	mut res := false
-	for r in rules {
-		if r.from <= val && r.to >= val {
-			res = true
-		}
-	}
-	println('is_valid val:[$val] res:[$res]')
-	return res
-}
 
-fn parse_interval(interval string) Interval {
+fn parse_interval_limits(interval string) (int, int) {
 	parts := interval.split('-')
-	return Interval{
-		from: parts[0].int()
-		to: parts[1].int()
-	}
+	return parts[0].int(), parts[1].int()
 }
 
 fn main() {
-	mut field_map := map[string]bool{} // field -> match
-	mut rules := map[string][]Interval{}
-	mut validator := Validator{}
 	raw := read_file_as_string(input_file)
 	parts := raw.split('\n\n')
+	mut limits := [][]int{} // holds per fieldindex the min/max pairs
 	for rule in parts[0].split('\n') {
 		key := rule.all_before(':')
-		intervals := rule.all_after(': ').split(' or ').map(parse_interval(it))
-		rules[key] = intervals
-		field_map[key] = true // unknown index
+		limit_vals := rule.all_after(': ').replace(' or ', '-').split('-').map(it.int()) // replace by (\d+) 
+		limits << limit_vals
 	}
-	validator.new(rules)
+
+	// own ticket
+	own_ticket := parts[1].replace('own ticket:your ticket:\n','').split(',').map(it.int())
+	println('own ticket:$own_ticket')
 	// nearby tickets
 	nearby_tickets := parts[2]
-	ticket_number_str := nearby_tickets.all_after('\n').split('\n') // .map( it.split(','))
+	ticket_number_str := nearby_tickets.all_after('\n').split('\n') 
 	mut tickets := [][]int{}
 	for line in ticket_number_str {
 		tickets << line.split(',').map(it.int())
 	}
+
 	// remove invalid tickets
-	tickets = tickets.filter(validator.valid_ticket(it))
+	tickets = tickets.filter(valid_ticket(it, limits))
 	println('valid tickets:$tickets.len')
-	assert tickets.len > 0
-	// key => index
-	mut mapping_index := map[string]int{} // field -> colIndex
-	for n in 0 .. tickets[0].len {
-		println('next columns:[N=$n]')
-		for row in 0 .. tickets.len {
-			println('val:${tickets[row][n]}')
-			for k, _ in field_map {
-				if k in mapping_index {
-					// we already mapped current field to a column
-					field_map[k] = false
-					continue
+	mut arr_valid := [][]bool{len: tickets[0].len, init: []bool{len: limits.len, init: true}} // 20x20 
+	assert arr_valid.len == 20
+	assert arr_valid[0].len == 20
+	for i, _ in tickets {
+		for ticket_num in 0 .. tickets[i].len {
+			for field in 0 .. limits.len {
+				num := tickets[i][ticket_num]
+				l := limits[field]
+				min1, max1, min2, max2 := l[0], l[1], l[2], l[3]
+				is_valid := (min1 <= num && num <= max1) || (min2 <= num && num <= max2)
+				if !is_valid {
+					arr_valid[ticket_num][field] = false
 				}
-				// if field_map[k] == false {		// CLEAR MAP!!!!!!
-				// continue
-				// }
-				num_valid := rules[k].is_valid(tickets[row][n])
-				println('num:${tickets[row][n]} num_valid:$num_valid field_map[$k]=${field_map[k]}')
-				field_map[k] = field_map[k] && num_valid
-				println('after ${field_map[k]} k=$k')
 			}
-		}
-		// we now have a map with keys and whether they are true for all column values
-		println('AFTER COL FIELD_MAP:$field_map')
-		// inspect map
-		mut key := ''
-		mut count := 0
-		for k, _ in field_map {
-			if field_map[k] {
-				println('Matching field:[$k] found in column:$n')
-				mapping_index[key] = n
-				// key = k
-				// count++
-			}
-		}
-		// if count == 1 {
-		// 	println('COL:$n KEY:$key $mapping_index')
-		// }
-		// reset field_map after each column
-		for k, _ in field_map {
-			field_map[k] = true
 		}
 	}
-	println('\n\n')
-	println('mapping:$mapping_index')
+
+	// we have an array(i,j) with ticket position (i) and field index (j), this (i,j) return whether for ticket position all values matched field limits
+	// Now we find the fields for the ticket positions by checking to see if one position matches a single field
+	// then mark that field as false for all other ticket positions
+	mut matched_cols := []int{}
+	mut field_to_pos := map[string]int{} // field X => ticket pos. N
+	for {
+		// finished when we matched all columns
+		if matched_cols.len == arr_valid.len {
+			break
+		}
+		for tpos in 0 .. arr_valid.len {
+			if tpos !in matched_cols {
+				candidates := arr_valid[tpos].filter(it == true)
+				if candidates.len == 1 {
+					// lookup the index it occured as filter loses that
+					mut index := -1
+					for i, fld in arr_valid[tpos] {
+						if fld {
+							index = i
+							matched_cols << tpos
+							field_to_pos[i.str()] = tpos
+							// remove this fld from other positions
+							for ipos in 0 .. arr_valid.len {
+								arr_valid[ipos][i] = false
+							}
+							break
+						}
+					}
+				}
+			}
+		}
+	}
+	// println(field_to_pos)
+
+	// for all duration* fields  we need the first 6 fields
+	// we then find the matching ticket pos and find the value of our own ticket
+	// which we multiply together for the answer
+	mut answer:= u64(1)
+	for i in 0..6{
+		// lookup index we need 
+		idx := field_to_pos[i.str()]
+		answer *= u64(own_ticket[idx])
+		println('i:$i idx:$idx my-ticket-value:${u64(own_ticket[idx])} answer:$answer')
+	}
+	println('answer day 16 part 2: $answer')
 }
 
 fn read_file_as_string(file_path string) string {
-	raw := os.read_file(file_path) or {
-		panic(err)
-	}
+	raw := os.read_file(file_path) or { panic(err) }
 	return raw
 }
