@@ -13,11 +13,7 @@ fn (mut d Deck) next() int {
 }
 
 fn (mut d Deck) add_winning(card1 int, card2 int) {
-	if card1 > card2 {
-		d.cards << [card1, card2]
-	} else {
-		d.cards << [card2, card1]
-	}
+	d.cards << [card1, card2]
 }
 
 fn (d Deck) is_empty() bool {
@@ -36,45 +32,59 @@ fn main() {
 	mut p2 := Deck{
 		cards: player2_numbers
 	}
-	// play
-	mut player1_won := false
-	mut seen := map[string]bool
+	_, winners_deck := play(mut p1, mut p2)
+	println('final deck:$winners_deck')
+	score := calc_score(winners_deck)
+	println('score :$score')
+}
+
+fn play(mut p1_deck Deck, mut p2_deck Deck) (bool, &Deck) {
+	mut seen := map[string]bool{}
+	mut player_one_won := false
 	for {
-
-		if p1.is_empty() {
-			break
+		if p1_deck.is_empty() {
+			return false, p2_deck
 		}
-		if p2.is_empty() {
-			player1_won = true
-			// winning_player_hand = p1
-			break
+		if p2_deck.is_empty() {
+			return true, p1_deck
 		}
-		p1_card := p1.next()
-		p2_card := p2.next()
-		if p1_card > p2_card {
-			p1.add_winning(p1_card, p2_card)
-		} else {
-			p2.add_winning(p2_card, p1_card)
-		}
-		key :='$p1_card-$p2_card' 
+		key := p1_deck.cards.map(it.str()).join('-') + p2_deck.cards.map(it.str()).join('-')
 		if key in seen {
-			println('found same position. Player 1 wins.')
-			player1_won = true
-			break
+			return true, p1_deck
 		}
-		seen[key]=true
+		seen[key] = true
+		p1_card := p1_deck.next()
+		p2_card := p2_deck.next()
+		// if both players drew cards with numbers which are less or equal to
+		// their deck size we play sub game
+		if p1_card <= p1_deck.cards.len && p2_card <= p2_deck.cards.len {
+			// create copy of n-cards from deck
+			mut p1_copy_deck := Deck{
+				cards: p1_deck.cards[0..p1_card].clone()
+			}
+			mut p2_copy_deck := Deck{
+				cards: p2_deck.cards[0..p2_card].clone()
+			}
+			play(mut p1_copy_deck, mut p2_copy_deck)
+			player_one_won, _ = play(mut p1_copy_deck, mut p2_copy_deck)
+		} else {
+			player_one_won = p1_card > p2_card
+		}
+		if player_one_won {
+			p1_deck.add_winning(p1_card, p2_card)
+		} else {
+			p2_deck.add_winning(p2_card, p1_card)
+		}
 	}
-
-	if player1_won {
-		println('player 1 won')
-		println('score:${calc_score(p1)}')
+	if player_one_won {
+		return true, p1_deck
 	} else {
-		println('player 2 won')
-		println('score:${calc_score(p2)}')
+		return false, p2_deck
 	}
 }
 
 fn calc_score(player Deck) int {
+	// println('calc_score:$player')
 	mut res := 0
 	for i, c in player.cards {
 		res += (player.cards.len - i) * c
