@@ -65,7 +65,6 @@ fn play(mut p1_deck Deck, mut p2_deck Deck) (bool, &Deck) {
 			mut p2_copy_deck := Deck{
 				cards: p2_deck.cards[0..p2_card].clone()
 			}
-			play(mut p1_copy_deck, mut p2_copy_deck)
 			player_one_won, _ = play(mut p1_copy_deck, mut p2_copy_deck)
 		} else {
 			player_one_won = p1_card > p2_card
